@@ -7,7 +7,7 @@ contract BaseToken is Ownable
 {
     using SafeMath for uint256;
 
-    // MARK: strings for error message.
+    // MARK: error message.
     string constant public ERROR_APPROVED_BALANCE_NOT_ENOUGH = 'Reason: Approved balance is not enough.';
     string constant public ERROR_BALANCE_NOT_ENOUGH          = 'Reason: Balance is not enough.';
     string constant public ERROR_LOCKED                      = 'Reason: Locked';
@@ -18,7 +18,7 @@ contract BaseToken is Ownable
     string constant public ERROR_DATE_TIME_NOT_VALID         = 'Reason: Datetime must grater or equals than zero.';
     string constant public ERROR_OUT_OF_INDEX                = 'Reason: Out of index';
 
-    // MARK: for token information.
+    // MARK: basic token information.
     uint256 constant public E18      = 1000000000000000000;
     uint256 constant public decimals = 18;
     uint256 public totalSupply;

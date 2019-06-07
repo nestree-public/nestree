@@ -7,7 +7,7 @@ contract Nestree is BaseToken
 {
     using SafeMath for uint256;
 
-    // MARK: for token information.
+    // MARK: token information.
     string constant public name    = 'Nestree';
     string constant public symbol  = 'EGG';
     string constant public version = '1.0.0';
