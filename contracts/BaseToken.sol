@@ -8,18 +8,19 @@ contract BaseToken is Ownable
     using SafeMath for uint256;
 
     // MARK: error message.
-    string constant public ERROR_APPROVED_BALANCE_NOT_ENOUGH = 'Reason: Approved balance is not enough.';
-    string constant public ERROR_BALANCE_NOT_ENOUGH          = 'Reason: Balance is not enough.';
-    string constant public ERROR_LOCKED                      = 'Reason: Locked';
-    string constant public ERROR_ADDRESS_NOT_VALID           = 'Reason: Address is not valid.';
-    string constant public ERROR_ADDRESS_IS_SAME             = 'Reason: Address is same.';
-    string constant public ERROR_VALUE_NOT_VALID             = 'Reason: Value must be greater than 0.';
-    string constant public ERROR_NO_LOCKUP                   = 'Reason: There is no lockup.';
-    string constant public ERROR_DATE_TIME_NOT_VALID         = 'Reason: Datetime must grater or equals than zero.';
-    string constant public ERROR_OUT_OF_INDEX                = 'Reason: Out of index';
+    string constant internal ERROR_APPROVED_BALANCE_NOT_ENOUGH = 'Reason: Approved balance is not enough.';
+    string constant internal ERROR_BALANCE_NOT_ENOUGH          = 'Reason: Balance is not enough.';
+    string constant internal ERROR_LOCKED                      = 'Reason: Locked.';
+    string constant internal ERROR_ADDRESS_NOT_VALID           = 'Reason: Address is not valid.';
+    string constant internal ERROR_ADDRESS_IS_SAME             = 'Reason: Address is same.';
+    string constant internal ERROR_VALUE_NOT_VALID             = 'Reason: Value must be greater than 0.';
+    string constant internal ERROR_NO_LOCKUP                   = 'Reason: There is no lockup.';
+    string constant internal ERROR_DATE_TIME_NOT_VALID         = 'Reason: Datetime must grater or equals than zero.';
+    string constant internal ERROR_OUT_OF_INDEX                = 'Reason: Out of index.';
+    string constant internal ERROR_TIME_IS_PAST                = 'Reason: Time is past.';
 
     // MARK: basic token information.
-    uint256 constant public E18      = 1000000000000000000;
+    uint256 constant internal E18      = 1000000000000000000;
     uint256 constant public decimals = 18;
     uint256 public totalSupply;
 
@@ -37,13 +38,24 @@ contract BaseToken is Ownable
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 
-    event Locked(address _who, uint256 _amount, uint256 _time);
-    event Unlocked(address _who);
+    event Locked(address _who,uint256 _index);
+    event UnlockedAll(address _who);
+    event UnlockedIndex(address _who, uint256 _index);
     event Burn(address indexed from, uint256 indexed value);
 
     constructor() public
     {
         balances[msg.sender] = totalSupply;
+    }
+
+    modifier transferParamsValidation(address _from, address _to, uint256 _value)
+    {
+        require(_from != address(0), ERROR_ADDRESS_NOT_VALID);
+        require(_to != address(0), ERROR_ADDRESS_NOT_VALID);
+        require(_value > 0, ERROR_VALUE_NOT_VALID);
+        require(balances[_from] >= _value, ERROR_BALANCE_NOT_ENOUGH);
+        require(!isLocked(_from, _value), ERROR_LOCKED);
+        _;
     }
 
     // MARK: functions for view data
@@ -97,46 +109,31 @@ contract BaseToken is Ownable
     }
 
     // MARK: functions for token transfer
-    function transfer(address _to, uint256 _value) external onlyWhenNotStopped returns (bool)
+    function transfer(address _to, uint256 _value) external onlyWhenNotStopped transferParamsValidation(msg.sender, _to, _value) returns (bool)
     {
-        require(_to != address(0));
-        require(balances[msg.sender] >= _value, ERROR_BALANCE_NOT_ENOUGH);
-        require(!isLocked(msg.sender, _value), ERROR_LOCKED);
+        _transfer(msg.sender, _to, _value);
 
-        balances[msg.sender] = balances[msg.sender].sub(_value);
-        balances[_to] = balances[_to].add(_value);
-
-        emit Transfer(msg.sender, _to, _value);
         return true;
     }
 
-    function transferFrom(address _from, address _to, uint256 _value) external onlyWhenNotStopped returns (bool)
+    function transferFrom(address _from, address _to, uint256 _value) external onlyWhenNotStopped transferParamsValidation(_from, _to, _value) returns (bool)
     {
-        require(_from != address(0), ERROR_ADDRESS_NOT_VALID);
-        require(_to != address(0), ERROR_ADDRESS_NOT_VALID);
-        require(_value > 0, ERROR_VALUE_NOT_VALID);
-        require(balances[_from] >= _value, ERROR_BALANCE_NOT_ENOUGH);
         require(approvals[_from][msg.sender] >= _value, ERROR_APPROVED_BALANCE_NOT_ENOUGH);
-        require(!isLocked(_from, _value), ERROR_LOCKED);
 
         approvals[_from][msg.sender] = approvals[_from][msg.sender].sub(_value);
-        balances[_from] = balances[_from].sub(_value);
-        balances[_to]  = balances[_to].add(_value);
 
-        emit Transfer(_from, _to, _value);
+        _transfer(_from, _to, _value);
+
         return true;
     }
 
-    function transferWithLock(address _to, uint256 _value, uint256 _time) onlyOwner external returns (bool)
+    function transferWithLock(address _to, uint256 _value, uint256 _time) onlyOwner transferParamsValidation(msg.sender, _to, _value) external returns (bool)
     {
-        require(balances[msg.sender] >= _value, ERROR_BALANCE_NOT_ENOUGH);
+        require(_time > now, ERROR_TIME_IS_PAST);
 
-        lock(_to, _value, _time);
+        _lock(_to, _value, _time);
+        _transfer(msg.sender, _to, _value);
 
-        balances[msg.sender] = balances[msg.sender].sub(_value);
-        balances[_to] = balances[_to].add(_value);
-
-        emit Transfer(msg.sender, _to, _value);
         return true;
     }
 
@@ -148,28 +145,35 @@ contract BaseToken is Ownable
         require(msg.sender != _spender, ERROR_ADDRESS_IS_SAME);
 
         approvals[msg.sender][_spender] = _value;
+
         emit Approval(msg.sender, _spender, _value);
+
         return true;
     }
 
     // MARK: utils for amount of token
     // Lock up token until specific date time.
-    function lock(address _who, uint256 _value, uint256 _dateTime) onlyOwner public
+    function unlock(address _who, uint256 _index) onlyOwner external returns (bool)
     {
-        require(_who != address (0), ERROR_VALUE_NOT_VALID);
-        require(_value > 0, ERROR_VALUE_NOT_VALID);
+        uint256 length = lockup[_who].length;
+        require(length > 0, ERROR_NO_LOCKUP);
 
-        lockup[_who].push(Lock(_value, _dateTime));
-        emit Locked(_who, _value, _dateTime);
+        lockup[_who][_index] = lockup[_who][length - 1];
+        lockup[_who].length--;
+
+        emit UnlockedIndex(_who, _index);
+
+        return true;
     }
 
-    function unlock(address _who, uint256 _index) onlyOwner external returns (uint256)
+    function unlockAll(address _who) onlyOwner external returns (bool)
     {
         require(lockup[_who].length > 0, ERROR_NO_LOCKUP);
-        delete lockup[_who][_index];
-        emit Unlocked(_who);
 
-        return lockup[_who].length;
+        delete lockup[_who];
+        emit UnlockedAll(_who);
+
+        return true;
     }
 
     function burn(uint256 _value) external
@@ -182,6 +186,22 @@ contract BaseToken is Ownable
         totalSupply = totalSupply.sub(_value);
 
         emit Burn(msg.sender, _value);
+    }
+
+    // MARK: internal functions
+    function _transfer(address _from, address _to, uint256 _value) internal
+    {
+        balances[_from] = balances[_from].sub(_value);
+        balances[_to] = balances[_to].add(_value);
+
+        emit Transfer(_from, _to, _value);
+    }
+
+    function _lock(address _who, uint256 _value, uint256 _dateTime) onlyOwner internal
+    {
+        lockup[_who].push(Lock(_value, _dateTime));
+
+        emit Locked(_who, lockup[_who].length - 1);
     }
 
     // destruct for only after token upgrade

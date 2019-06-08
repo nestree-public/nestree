@@ -2,11 +2,11 @@ pragma solidity ^0.5.8;
 
 contract Ownable
 {
-    string constant public ERROR_NO_HAVE_PERMISSION   = 'Reason: No have permission.';
-    string constant public ERROR_IS_STOPPED           = 'Reason: Is stopped.';
-    string constant public ERROR_ADDRESS_NOT_VALID    = 'Reason: Address is not valid.';
-    string constant public ERROR_CALLER_ALREADY_OWNER = 'Reason: Caller already is owner';
-    string constant public ERROR_NOT_PROPOSED_OWNER   = 'Reason: Not proposed owner';
+    string constant internal ERROR_NO_HAVE_PERMISSION   = 'Reason: No have permission.';
+    string constant internal ERROR_IS_STOPPED           = 'Reason: Is stopped.';
+    string constant internal ERROR_ADDRESS_NOT_VALID    = 'Reason: Address is not valid.';
+    string constant internal ERROR_CALLER_ALREADY_OWNER = 'Reason: Caller already is owner';
+    string constant internal ERROR_NOT_PROPOSED_OWNER   = 'Reason: Not proposed owner';
 
     bool private stopped;
     address private _owner;
