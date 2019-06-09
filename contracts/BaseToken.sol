@@ -156,7 +156,7 @@ contract BaseToken is Ownable
     function unlock(address _who, uint256 _index) onlyOwner external returns (bool)
     {
         uint256 length = lockup[_who].length;
-        require(length > 0, ERROR_NO_LOCKUP);
+        require(length > _index, ERROR_OUT_OF_INDEX);
 
         lockup[_who][_index] = lockup[_who][length - 1];
         lockup[_who].length--;

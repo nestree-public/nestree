@@ -7,6 +7,8 @@ contract Nestree is BaseToken
 {
     using SafeMath for uint256;
 
+    string constant internal ERROR_DUPLICATE_ADDRESS = 'Reason: msg.sender and receivers can not be the same.';
+
     // MARK: token information.
     string constant public name    = 'Nestree';
     string constant public symbol  = 'EGG';
@@ -28,6 +30,7 @@ contract Nestree is BaseToken
         require(_sale != address(0), ERROR_ADDRESS_NOT_VALID);
         require(balances[msg.sender] >= _value1.add(_value2).add(_fee), ERROR_VALUE_NOT_VALID);
         require(!isLocked(msg.sender, _value1.add(_value2).add(_fee)), ERROR_LOCKED);
+        require(msg.sender != _to1 && msg.sender != _to2 && msg.sender != _sale, ERROR_DUPLICATE_ADDRESS);
 
         balances[msg.sender] = balances[msg.sender].sub(_value1.add(_value2).add(_fee));
 
