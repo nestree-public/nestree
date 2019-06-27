@@ -16,6 +16,7 @@ contract Nestree is BaseToken
 
     // MARK: events
     event ReferralDrop(address indexed from, address indexed to1, uint256 value1, address indexed to2, uint256 value2);
+    event TransferMulti(address indexed from, address[] receivers, uint256[] amounts);
 
     constructor() public
     {
@@ -50,6 +51,40 @@ contract Nestree is BaseToken
         }
 
         emit ReferralDrop(msg.sender, _to1, _value1, _to2, _value2);
+        return true;
+    }
+
+    function transferMulti(address[] calldata _receivers, uint256[] calldata _amounts) external onlyWhenNotStopped returns (bool)
+    {
+        uint256 receiversLength = _receivers.length;
+        uint256 amountsLength = _amounts.length;
+
+        require(receiversLength > 0, ERROR_ADDRESS_NOT_VALID);
+        require(amountsLength > 0, ERROR_ADDRESS_NOT_VALID);
+        require(receiversLength == amountsLength, ERROR_ADDRESS_NOT_VALID);
+
+        uint256 sum = 0;
+
+        for(uint256 i=0; i<receiversLength; i++)
+        {
+            require(_receivers[i] != address(0), ERROR_ADDRESS_NOT_VALID);
+            require(_amounts[i] > 0, ERROR_VALUE_NOT_VALID);
+
+            sum = sum.add(_amounts[i]);
+        }
+
+        require(balances[msg.sender] >= sum, ERROR_VALUE_NOT_VALID);
+        require(!isLocked(msg.sender, sum), ERROR_LOCKED);
+
+        for(uint256 i=0; i<receiversLength; i++)
+        {
+            balances[_receivers[i]] = balances[_receivers[i]].add(_amounts[i]);
+        }
+
+        balances[msg.sender] = balances[msg.sender].sub(sum);
+
+        emit TransferMulti(msg.sender, _receivers, _amounts);
+
         return true;
     }
 }
