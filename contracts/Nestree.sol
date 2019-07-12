@@ -16,7 +16,6 @@ contract Nestree is BaseToken
 
     // MARK: events
     event ReferralDrop(address indexed from, address indexed to1, uint256 value1, address indexed to2, uint256 value2);
-    event TransferMulti(address indexed from, address[] receivers, uint256[] amounts);
 
     constructor() public
     {
