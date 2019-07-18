@@ -7,6 +7,7 @@ contract ERC20
     function balanceOf(address _who) view public returns (uint256) {}
     function transfer(address _to, uint256 _value) public returns (bool) {}
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {}
+    function allowance(address _owner, address _spender) view external returns (uint256) {}
 }
 
 // 이 컨트랙트 주소에 approve를 먼저 해두고
@@ -30,7 +31,7 @@ contract NestreeDropTest
     function balanceOf(address _tokenAddress) public view returns (uint256)
     {
         ERC20 token = ERC20(_tokenAddress);
-        return token.balanceOf(_self);
+        return token.allowance(msg.sender, _self);
     }
 
     function drop(address _tokenAddress, address[] calldata _toList, uint256[] calldata _amountList) external returns (bool)
@@ -48,13 +49,13 @@ contract NestreeDropTest
         }
 
         // 합계가 발란스보다 많은지 체크
-        uint256 balance = token.balanceOf(_self);
+        uint256 balance = balanceOf(_tokenAddress);
 
         require(balance >= sumOfBalances);
 
         for(uint256 i=0; i<_toList.length; i++)
         {
-            token.transfer(_toList[i], _amountList[i]);
+            token.transferFrom(msg.sender, _toList[i], _amountList[i]);
         }
 
         emit Drop(_tokenAddress, _toList, _amountList);
