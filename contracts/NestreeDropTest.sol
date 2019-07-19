@@ -37,7 +37,6 @@ contract NestreeDropTest
     function drop(address _tokenAddress, address[] calldata _toList, uint256[] calldata _amountList) external returns (bool)
     {
         require(_tokenAddress != address(0), 'Token address is not valid');
-        require(msg.sender == _owner, 'Not Owner');
         require(_toList.length == _amountList.length, 'Not valid list length');
 
         ERC20 token = ERC20(_tokenAddress);
@@ -49,7 +48,7 @@ contract NestreeDropTest
         }
 
         // 합계가 발란스보다 많은지 체크
-        uint256 balance = balanceOf(_tokenAddress);
+        uint256 balance = token.allowance(msg.sender, _self);
 
         require(balance >= sumOfBalances);
 
