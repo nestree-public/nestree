@@ -1,4 +1,4 @@
-pragma solidity ^0.5.8;
+pragma solidity ^0.5.10;
 
 contract Ownable
 {
@@ -6,29 +6,36 @@ contract Ownable
     string constant internal ERROR_IS_STOPPED           = 'Reason: Is stopped.';
     string constant internal ERROR_ADDRESS_NOT_VALID    = 'Reason: Address is not valid.';
     string constant internal ERROR_CALLER_ALREADY_OWNER = 'Reason: Caller already is owner';
+    string constant internal ERROR_CALLER_ALREADY_MASTER = 'Reason: Caller already is master';
     string constant internal ERROR_NOT_PROPOSED_OWNER   = 'Reason: Not proposed owner';
+    string constant internal ERROR_NOT_PROPOSED_MASTER   = 'Reason: Not proposed master';
+    string constant internal ERROR_ALREADY_MANAGER      = 'Reason: Already manager';
+    string constant internal ERROR_NOT_MANAGER          = 'Reason: Not manager';
 
     bool private stopped;
-    address private _owner;
+    address private owner;
     address private proposedOwner;
-    mapping(address => bool) private _allowed;
+    mapping(address => bool) private managers;
+    mapping(address => bool) private allowed;
 
     event Stopped();
     event Started();
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event Manager(address indexed manager);
+    event RemoveManager(address indexed manager);
     event Allowed(address indexed _address);
     event RemoveAllowed(address indexed _address);
 
     constructor () internal
     {
         stopped = false;
-        _owner = msg.sender;
-        emit OwnershipTransferred(address(0), _owner);
+        owner = msg.sender;
+        emit OwnershipTransferred(address(0), owner);
     }
 
-    function owner() public view returns (address)
+    function getOwner() public view returns (address)
     {
-        return _owner;
+        return owner;
     }
 
     modifier onlyOwner()
@@ -39,7 +46,7 @@ contract Ownable
 
     modifier onlyAllowed()
     {
-        require(isAllowed() || isOwner(), ERROR_NO_HAVE_PERMISSION);
+        require(isAllowed() || isOwner() || isManager(), ERROR_NO_HAVE_PERMISSION);
         _;
     }
 
@@ -51,31 +58,56 @@ contract Ownable
 
     function isOwner() public view returns (bool)
     {
-        return msg.sender == _owner;
+        return msg.sender == owner;
+    }
+
+    function isManager() public view returns (bool)
+    {
+        return managers[msg.sender];
     }
 
     function isAllowed() public view returns (bool)
     {
-        return _allowed[msg.sender];
+        return allowed[msg.sender];
+    }
+
+    function setManager(address _target) external onlyOwner returns (bool)
+    {
+        require(!managers[_target], ERROR_ALREADY_MANAGER);
+        managers[_target] = true;
+
+        emit Manager(_target);
+
+        return true;
+    }
+
+    function removeManager(address _target) external onlyOwner returns (bool)
+    {
+        require(managers[_target], ERROR_NOT_MANAGER);
+        managers[_target] = false;
+
+        emit RemoveManager(_target);
+
+        return true;
     }
 
     function allow(address _target) external onlyOwner returns (bool)
     {
-        _allowed[_target] = true;
+        allowed[_target] = true;
         emit Allowed(_target);
         return true;
     }
 
     function removeAllowed(address _target) external onlyOwner returns (bool)
     {
-        _allowed[_target] = false;
+        allowed[_target] = false;
         emit RemoveAllowed(_target);
         return true;
     }
 
     function isStopped() public view returns (bool)
     {
-        if(isOwner() || isAllowed())
+        if(isOwner() || isManager() || isAllowed())
         {
             return false;
         }
@@ -105,9 +137,9 @@ contract Ownable
     {
         require(msg.sender == proposedOwner, ERROR_NOT_PROPOSED_OWNER);
 
-        emit OwnershipTransferred(_owner, proposedOwner);
+        emit OwnershipTransferred(owner, proposedOwner);
 
-        _owner = proposedOwner;
+        owner = proposedOwner;
         proposedOwner = address(0);
     }
 
