@@ -3,12 +3,12 @@ pragma solidity ^0.5.10;
 import "./SafeMath.sol";
 import "./Ownable.sol";
 
-contract ERC20
+interface ERC20
 {
-    function balanceOf(address _who) view public returns (uint256) {}
-    function transfer(address _to, uint256 _value) public returns (bool) {}
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {}
-    function allowance(address _owner, address _spender) view external returns (uint256) {}
+    function balanceOf(address _who) view external returns (uint256);
+    function transfer(address _to, uint256 _value) external returns (bool);
+    function transferFrom(address _from, address _to, uint256 _value) external returns (bool);
+    function allowance(address _owner, address _spender) view external returns (uint256);
 }
 
 contract NestreeChannelDrop is Ownable
