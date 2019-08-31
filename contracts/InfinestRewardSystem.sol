@@ -70,9 +70,11 @@ contract InfinestRewardSystem is InfinestOwnable
         {
             ERC20 _token = ERC20(tokens[i]);
             uint256 balance = _token.balanceOf(_self);
-            _token.transfer(_new, balance);
-
-            emit Migration(_new, tokens[i], balance);
+            if(balance > 0)
+            {
+                _token.transfer(_new, balance);
+                emit Migration(_new, tokens[i], balance);
+            }
         }
     }
 
