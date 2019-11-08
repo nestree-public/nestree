@@ -1,4 +1,4 @@
-pragma solidity ^0.5.10;
+pragma solidity ^0.5.11;
 
 import "./SafeMath.sol";
 
@@ -11,7 +11,7 @@ contract ERC20
 }
 
 // 이 컨트랙트 주소에 approve를 먼저 해두고
-contract NestreeDropTest
+contract InfinestSystemTest
 {
     using SafeMath for uint256;
 
